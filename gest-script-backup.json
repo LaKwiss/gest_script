@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "categories": [
+    {
+      "name": "Scripts",
+      "colorHex": null,
+      "scripts": [
+        {
+          "name": "Get java's versionsss",
+          "command": "java --version",
+          "isAdmin": false,
+          "showOutput": false,
+          "params": []
+        },
+        {
+          "name": "echo test",
+          "command": "echo \"test\"",
+          "isAdmin": false,
+          "showOutput": false,
+          "params": []
+        },
+        {
+          "name": "tt",
+          "command": "notepad.exe",
+          "isAdmin": false,
+          "showOutput": false,
+          "params": []
+        }
+      ]
+    }
+  ]
+}

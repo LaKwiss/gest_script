@@ -1,0 +1,110 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gest_script/data/models/category_model.dart';
+import 'package:gest_script/data/models/script_model.dart';
+import 'package:gest_script/data/providers/app_providers.dart';
+
+class JsonService {
+  static void exportJson(BuildContext context, WidgetRef ref) async {
+    final categories = ref.read(categoryListProvider).value ?? [];
+    Map<String, dynamic> exportData = {'version': 1, 'categories': []};
+
+    for (var cat in categories) {
+      final scripts = await ref
+          .read(databaseProvider)
+          .readScriptsByCategory(cat.id!);
+      exportData['categories'].add({
+        'name': cat.name,
+        'colorHex': cat.colorHex,
+        'scripts': scripts.map((s) => s.toJson()).toList(),
+      });
+    }
+
+    final String? outputFile = await FilePicker.platform.saveFile(
+      dialogTitle: 'Exporter la configuration',
+      fileName: 'gest-script-backup.json',
+    );
+
+    if (outputFile != null) {
+      final file = File(outputFile);
+      await file.writeAsString(jsonEncode(exportData));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Exportation réussie !')));
+      }
+    }
+  }
+
+  static void importJson(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Importer une configuration'),
+            content: const Text(
+              'ATTENTION : Ceci remplacera toute votre configuration actuelle. Voulez-vous continuer ?',
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Annuler'),
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+              TextButton(
+                child: const Text('Remplacer'),
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true) return;
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    if (result != null) {
+      final file = File(result.files.single.path!);
+      final content = await file.readAsString();
+      final data = jsonDecode(content);
+
+      await ref.read(databaseProvider).clearAllData();
+
+      final List categoriesData = data['categories'];
+      int catOrder = 0;
+      for (var catData in categoriesData) {
+        final newCategoryModel = CategoryModel(
+          name: catData['name'],
+          displayOrder: catOrder++,
+          colorHex: catData['colorHex'],
+        );
+        final createdCategory = await ref
+            .read(databaseProvider)
+            .createCategory(newCategoryModel);
+
+        final List scriptsData = catData['scripts'];
+        for (var scriptData in scriptsData) {
+          final newScript = ScriptModel.fromJson(
+            scriptData,
+            createdCategory.id!,
+          );
+          await ref.read(databaseProvider).createScript(newScript);
+        }
+      }
+
+      // Forcer le rafraîchissement
+      ref.invalidate(categoryListProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Importation réussie !')));
+      }
+    }
+  }
+}
