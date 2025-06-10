@@ -115,3 +115,56 @@ void showAddScriptDialog(BuildContext context, WidgetRef ref, int categoryId) {
     },
   );
 }
+
+Future<List<String>?> showParamsDialog(
+  BuildContext context,
+  List<String> params,
+) async {
+  final controllers = {for (var p in params) p: TextEditingController()};
+  final formKey = GlobalKey<FormState>();
+  return showDialog<List<String>?>(
+    context: context,
+    builder:
+        (context) => AlertDialog(
+          title: const Text('Entrer les paramètres'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children:
+                    params
+                        .map(
+                          (p) => TextFormField(
+                            controller: controllers[p],
+                            decoration: InputDecoration(labelText: p),
+                            validator:
+                                (v) =>
+                                    v == null || v.isEmpty
+                                        ? 'Ce champ est requis'
+                                        : null,
+                          ),
+                        )
+                        .toList(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Annuler'),
+              onPressed: () => Navigator.of(context).pop(null),
+            ),
+            TextButton(
+              child: const Text('Lancer'),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(
+                    context,
+                  ).pop(params.map((p) => controllers[p]!.text).toList());
+                }
+              },
+            ),
+          ],
+        ),
+  );
+}
