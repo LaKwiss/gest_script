@@ -9,11 +9,11 @@ Future<void> showColorPicker(
   WidgetRef ref,
   CategoryModel category,
 ) async {
-  Color pickerColor =
+  var pickerColor =
       category.colorHex != null
           ? Color(int.parse('0xFF${category.colorHex!}'))
           : Colors.blue;
-  showDialog(
+  await showDialog<void>(
     context: context,
     builder:
         (context) => AlertDialog(

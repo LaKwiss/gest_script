@@ -234,7 +234,7 @@ class CategoryListNotifier
       if (mounted) {
         state = AsyncValue.data(categories);
       }
-    } catch (e, s) {
+    } on Exception catch (e, s) {
       if (mounted) {
         state = AsyncValue.error(e, s);
       }
@@ -293,7 +293,7 @@ class ScriptListNotifier extends StateNotifier<AsyncValue<List<ScriptModel>>> {
       if (mounted) {
         state = AsyncValue.data(scripts);
       }
-    } catch (e, s) {
+    } on Exception catch (e, s) {
       if (mounted) {
         state = AsyncValue.error(e, s);
       }

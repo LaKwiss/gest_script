@@ -23,7 +23,8 @@ class ScriptWidget extends StatelessWidget {
       leading: Icon(Icons.play_arrow, color: hexColor),
       title: Text(script.name),
       subtitle: Text(
-        'Dernière exécution: ${script.lastExecuted?.toLocal().toString() ?? 'Jamais'}',
+        'Dernière exécution: '
+        '${script.lastExecuted?.toLocal().toString() ?? 'Jamais'}',
         style: const TextStyle(fontSize: 10, color: Colors.grey),
       ),
       onTap: () => handleScriptExecution(context, ref, script),

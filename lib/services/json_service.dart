@@ -20,11 +20,11 @@ class JsonService {
       'categories': <Map<String, dynamic>>[],
     };
 
-    for (var cat in categories) {
+    for (final cat in categories) {
       final scripts = await _ref
           .read(databaseProvider)
           .readScriptsByCategory(cat.id!);
-      exportData['categories'].add({
+      (exportData['categories'] as List<Map<String, dynamic>>).add({
         'name': cat.name,
         'colorHex': cat.colorHex,
         'scripts': scripts.map((s) => s.toJson()).toList(),
@@ -83,19 +83,21 @@ class JsonService {
 
       await _ref.read(databaseProvider).clearAllData();
 
-      final List categoriesData = data['categories'];
+      final categoriesData = (data as Map<String, dynamic>)['categories'];
       var catOrder = 0;
-      for (var catData in categoriesData) {
+      for (final catData in categoriesData as List<dynamic>) {
         final newCategoryModel = CategoryModel(
-          name: catData['name'],
+          name: (catData as Map<String, dynamic>)['name'] as String,
           displayOrder: catOrder++,
-          colorHex: catData['colorHex'],
+          colorHex: catData['colorHex'] as String,
         );
         final createdCategory = await _ref
             .read(databaseProvider)
             .createCategory(newCategoryModel);
 
-        final scriptsData = List<Map<String, dynamic>>.from(catData['scripts']);
+        final scriptsData = List<Map<String, dynamic>>.from(
+          catData['scripts'] as List<dynamic>,
+        );
         for (final scriptData in scriptsData) {
           final newScript = ScriptModel.fromJson(
             scriptData,

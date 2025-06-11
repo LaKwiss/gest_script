@@ -120,7 +120,7 @@ Future<List<String>?> showParamsDialog(
   BuildContext context,
   List<String> params,
 ) async {
-  final controllers = {for (var p in params) p: TextEditingController()};
+  final controllers = {for (final p in params) p: TextEditingController()};
   final formKey = GlobalKey<FormState>();
   return showDialog<List<String>?>(
     context: context,

@@ -8,8 +8,8 @@ import 'package:gest_script/data/models/theme_model.dart';
 import 'package:gest_script/data/providers/app_providers.dart';
 
 class ThemeService {
-  final Ref _ref;
   ThemeService(this._ref);
+  final Ref _ref;
 
   Future<void> exportThemes(BuildContext context) async {
     final db = _ref.read(databaseProvider);
@@ -23,10 +23,9 @@ class ThemeService {
       return;
     }
 
-    final List<Map<String, dynamic>> exportData =
-        themes.map((t) => t.toJson()).toList();
+    final exportData = themes.map((t) => t.toJson()).toList();
 
-    final String? outputFile = await FilePicker.platform.saveFile(
+    final outputFile = await FilePicker.platform.saveFile(
       dialogTitle: 'Exporter les thèmes',
       fileName: 'gest-script-themes.json',
     );
@@ -88,15 +87,15 @@ class ThemeService {
       }
 
       try {
-        final List<dynamic> data = jsonDecode(content);
+        final data = jsonDecode(content);
 
         final db = _ref.read(databaseProvider);
         await db.clearAllThemes();
 
-        for (var themeJson in data) {
-          // La conversion ici peut échouer si la structure est mauvaise.
-          // Le `try...catch` l'interceptera.
-          final theme = CustomThemeModel.fromJson(themeJson);
+        for (final themeJson in data as List<dynamic>) {
+          final theme = CustomThemeModel.fromJson(
+            themeJson as Map<String, dynamic>,
+          );
           await db.createTheme(theme);
         }
 
@@ -107,7 +106,7 @@ class ThemeService {
             const SnackBar(content: Text('Thèmes importés avec succès !')),
           );
         }
-      } catch (e) {
+      } on Exception catch (e) {
         // 2. Intercepter toute erreur de format ou de structure
         debugPrint("Erreur d'importation de thème : $e");
         if (context.mounted) {

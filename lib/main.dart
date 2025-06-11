@@ -159,6 +159,8 @@ class SystemTray with TrayListener {
       case 'manage_themes':
         // Affiche la fenêtre si elle est cachée, puis navigue
         windowManager.show().then((_) {
+          if (!context.mounted) return;
+
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (context) => const ThemeManagementScreen(),

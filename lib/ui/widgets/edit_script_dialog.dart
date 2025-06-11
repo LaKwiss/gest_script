@@ -71,7 +71,7 @@ void showEditScriptDialog(
                       contentPadding: EdgeInsets.zero,
                     ),
                     CheckboxListTile(
-                      title: const Text("Afficher la sortie après exécution"),
+                      title: const Text('Afficher la sortie après exécution'),
                       value: showOutput,
                       onChanged: (val) => setState(() => showOutput = val!),
                       controlAffinity: ListTileControlAffinity.leading,
