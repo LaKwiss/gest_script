@@ -1,3 +1,7 @@
+# l10n.yaml
 arb-dir: lib/l10n
 template-arb-file: app_en.arb
 output-localization-file: app_localizations.dart
+# --- AJOUTEZ LES LIGNES SUIVANTES ---
+output-dir: lib/generated/l10n
+synthetic-package: false

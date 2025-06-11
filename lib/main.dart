@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gest_script/data/providers/app_providers.dart';
+import 'package:gest_script/l10n/app_localizations.dart';
 import 'package:gest_script/ui/home_screen.dart';
 import 'package:gest_script/ui/onboarding_screen.dart';
 import 'package:gest_script/ui/theme_managment_screen.dart';
@@ -10,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+//import 'package:gest_script/generated/l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

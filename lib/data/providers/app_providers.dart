@@ -15,7 +15,7 @@ final defaultLightTheme = ThemeData(
   primarySwatch: Colors.blue,
   scaffoldBackgroundColor: const Color(0xFFF5F5F5),
   useMaterial3: true,
-  cardTheme: const CardTheme(
+  cardTheme: const CardThemeData(
     elevation: 1,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -28,7 +28,7 @@ final defaultDarkTheme = ThemeData(
   primarySwatch: Colors.blue,
   scaffoldBackgroundColor: const Color(0xFF2D2D2D),
   useMaterial3: true,
-  cardTheme: const CardTheme(
+  cardTheme: const CardThemeData(
     elevation: 1,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -111,9 +111,7 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
         (t) => t.id == activeCustomThemeId,
         orElse: () => customThemes.first,
       );
-      if (activeTheme != null) {
-        activeThemeData = activeTheme.toThemeData();
-      }
+      activeThemeData = activeTheme.toThemeData();
     }
 
     state = state.copyWith(
