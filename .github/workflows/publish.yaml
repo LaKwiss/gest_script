@@ -8,9 +8,9 @@ on:
       - main
 
 jobs:
-  build-and-release:
-    # Utilise la dernière version d'Ubuntu pour exécuter le job
-    runs-on: ubuntu-latest
+  build-and-release-windows:
+    # Utilise la dernière version de Windows pour exécuter le job
+    runs-on: windows-latest
 
     steps:
       # 1. Récupère le code source de votre dépôt
@@ -21,31 +21,37 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: "stable" # ou 'beta', 'dev', 'master'
+          channel: "stable"
 
-      # 3. Installe les dépendances du projet
+      # 3. Rappel : Initialisation de la base de données pour le bureau
+      # Cette étape est gérée dans votre code (main.dart), mais c'est un bon rappel.
+      - name: Initialize sqflite_common_ffi
+        run: echo "sqflite_common_ffi must be initialized in main.dart for desktop builds."
+
+      # 4. Installe les dépendances du projet
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. Compile l'application pour Windows
+      # 5. Compile l'application pour Windows
       - name: Build Windows release
         run: flutter build windows --release
 
-      # 5. Prépare le nom de la version et de l'archive
-      - name: Prepare release name
+      # 6. Prépare le nom de la version et de l'archive
+      - name: Prepare release details
         id: prepare_release
         # Crée un nom de version basé sur la date et l'heure (ex: release-2025-06-11-10-30)
-        run: echo "TAG_NAME=release-$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_ENV
-
-      # 6. Crée l'archive ZIP du build Windows
-      # Le contenu du build se trouve dans build/windows/x64/runner/Release
-      - name: Create ZIP archive
+        # La syntaxe est pour PowerShell, l'interpréteur par défaut sur les runners Windows
         run: |
-          cd build/windows/x64/runner/Release
-          zip -r ../../../../gest-script-windows.zip .
-          cd ../../../../../
+          $TAG_NAME = "release-$(Get-Date -Format 'yyyy-MM-dd-HH-mm')"
+          echo "TAG_NAME=$TAG_NAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "ASSET_NAME=gest-script-windows-$TAG_NAME.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      # 7. Crée une nouvelle Release sur GitHub
+      # 7. Crée l'archive ZIP du build Windows
+      # Utilise la commande native PowerShell Compress-Archive
+      - name: Create ZIP archive
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath ${{ env.ASSET_NAME }}
+
+      # 8. Crée une nouvelle Release sur GitHub
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -57,13 +63,13 @@ jobs:
           draft: false
           prerelease: false
 
-      # 8. Uploade l'archive ZIP en tant qu'asset de la Release
+      # 9. Uploade l'archive ZIP en tant qu'asset de la Release
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/gest-script-windows.zip
-          asset_name: gest-script-windows.zip
+          asset_path: ./${{ env.ASSET_NAME }}
+          asset_name: ${{ env.ASSET_NAME }}
           asset_content_type: application/zip
