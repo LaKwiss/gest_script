@@ -4,39 +4,202 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gest_script/data/database_helper.dart';
 import 'package:gest_script/data/models/category_model.dart';
 import 'package:gest_script/data/models/script_model.dart';
+import 'package:gest_script/data/models/theme_model.dart'; // Importer le modèle de thème
+import 'package:gest_script/services/json_service.dart';
+import 'package:gest_script/services/theme_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+// --- Thèmes par défaut ---
+final defaultLightTheme = ThemeData(
+  brightness: Brightness.light,
+  primarySwatch: Colors.blue,
+  scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+  useMaterial3: true,
+  cardTheme: const CardTheme(
+    elevation: 1,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+    ),
+  ),
+);
+
+final defaultDarkTheme = ThemeData(
+  brightness: Brightness.dark,
+  primarySwatch: Colors.blue,
+  scaffoldBackgroundColor: const Color(0xFF2D2D2D),
+  useMaterial3: true,
+  cardTheme: const CardTheme(
+    elevation: 1,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+    ),
+  ),
+);
+
+// --- État du thème ---
+class ThemeState {
+  final ThemeData activeThemeData;
+  final List<CustomThemeModel> customThemes;
+  final int? activeCustomThemeId;
+  final ThemeMode currentThemeMode;
+
+  ThemeState({
+    required this.activeThemeData,
+    this.customThemes = const [],
+    this.activeCustomThemeId,
+    required this.currentThemeMode,
+  });
+
+  ThemeState copyWith({
+    ThemeData? activeThemeData,
+    List<CustomThemeModel>? customThemes,
+    int? activeCustomThemeId,
+    bool clearActiveCustomTheme = false,
+    ThemeMode? currentThemeMode,
+  }) {
+    return ThemeState(
+      activeThemeData: activeThemeData ?? this.activeThemeData,
+      customThemes: customThemes ?? this.customThemes,
+      activeCustomThemeId:
+          clearActiveCustomTheme
+              ? null
+              : activeCustomThemeId ?? this.activeCustomThemeId,
+      currentThemeMode: currentThemeMode ?? this.currentThemeMode,
+    );
+  }
+}
+
+// --- Notifier du Thème (Amélioré) ---
+final themeNotifierProvider = StateNotifierProvider<ThemeNotifier, ThemeState>((
+  ref,
+) {
+  return ThemeNotifier(ref);
+});
+
+class ThemeNotifier extends StateNotifier<ThemeState> {
+  final Ref _ref;
+  ThemeNotifier(this._ref)
+    : super(
+        ThemeState(
+          activeThemeData: defaultDarkTheme,
+          currentThemeMode: ThemeMode.dark,
+        ),
+      ) {
+    _loadInitialState();
+  }
+
+  Future<void> _loadInitialState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final db = _ref.read(databaseProvider);
+
+    // 1. Charger les thèmes persos
+    final customThemes = await db.readAllThemes();
+
+    // 2. Charger les préférences de l'utilisateur
+    final themeModeIndex = prefs.getInt('themeMode') ?? ThemeMode.dark.index;
+    final activeCustomThemeId = prefs.getInt('activeCustomThemeId');
+    final currentThemeMode = ThemeMode.values[themeModeIndex];
+
+    ThemeData activeThemeData =
+        currentThemeMode == ThemeMode.light
+            ? defaultLightTheme
+            : defaultDarkTheme;
+
+    // 3. Si un thème perso était actif, on le ré-applique
+    if (activeCustomThemeId != null) {
+      final activeTheme = customThemes.firstWhere(
+        (t) => t.id == activeCustomThemeId,
+        orElse: () => customThemes.first,
+      );
+      if (activeTheme != null) {
+        activeThemeData = activeTheme.toThemeData();
+      }
+    }
+
+    state = state.copyWith(
+      customThemes: customThemes,
+      activeCustomThemeId: activeCustomThemeId,
+      activeThemeData: activeThemeData,
+      currentThemeMode: currentThemeMode,
+    );
+  }
+
+  Future<void> setThemeMode(ThemeMode themeMode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('themeMode', themeMode.index);
+    await prefs.remove('activeCustomThemeId'); // On enlève le thème perso actif
+
+    state = state.copyWith(
+      currentThemeMode: themeMode,
+      activeThemeData:
+          themeMode == ThemeMode.light ? defaultLightTheme : defaultDarkTheme,
+      clearActiveCustomTheme: true,
+    );
+  }
+
+  Future<void> applyCustomTheme(CustomThemeModel theme) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('activeCustomThemeId', theme.id!);
+
+    state = state.copyWith(
+      activeThemeData: theme.toThemeData(),
+      activeCustomThemeId: theme.id,
+      // On met à jour le mode de base pour la cohérence
+      currentThemeMode:
+          theme.brightness == Brightness.light
+              ? ThemeMode.light
+              : ThemeMode.dark,
+    );
+  }
+
+  Future<void> refreshCustomThemes() async {
+    final customThemes = await _ref.read(databaseProvider).readAllThemes();
+    state = state.copyWith(customThemes: customThemes);
+  }
+
+  Future<void> deleteTheme(int themeId) async {
+    await _ref.read(databaseProvider).deleteTheme(themeId);
+    if (state.activeCustomThemeId == themeId) {
+      await setThemeMode(ThemeMode.dark); // Revenir au thème par défaut
+    } else {
+      await refreshCustomThemes();
+    }
+  }
+}
+
+// --- Le reste des providers (inchangé) ---
 final databaseProvider = Provider<DatabaseHelper>(
   (ref) => DatabaseHelper.instance,
 );
 
-// Provider pour charger TOUS les scripts une seule fois
+final jsonServiceProvider = Provider<JsonService>((ref) {
+  return JsonService(ref);
+});
+
+final themeServiceProvider = Provider<ThemeService>((ref) {
+  return ThemeService(ref);
+});
+
 final allScriptsProvider = FutureProvider<List<ScriptModel>>((ref) {
   final db = ref.watch(databaseProvider);
   return db.readAllScripts();
 });
 
-// Le provider des catégories reste un StateNotifierProvider pour garder ses méthodes.
 final categoryListProvider = StateNotifierProvider<
   CategoryListNotifier,
   AsyncValue<List<CategoryModel>>
 >((ref) {
-  // On écoute `allScriptsProvider` pour invalider et donc rafraîchir
-  // les catégories si un script est ajouté/modifié/supprimé.
   ref.watch(allScriptsProvider);
   return CategoryListNotifier(ref);
 });
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
-// filteredCategoriesProvider est maintenant un Provider SYNCHRONE qui dépend des autres.
 final filteredCategoriesProvider = Provider<List<CategoryModel>>((ref) {
-  // On écoute la recherche, la liste des catégories, et la liste de tous les scripts
   final searchQuery = ref.watch(searchQueryProvider);
   final categoriesAsync = ref.watch(categoryListProvider);
   final scriptsAsync = ref.watch(allScriptsProvider);
 
-  // Si une des sources de données n'est pas prête, on retourne une liste vide.
-  // L'UI principale gérera l'affichage du chargement.
   if (categoriesAsync is! AsyncData || scriptsAsync is! AsyncData) {
     return [];
   }
@@ -44,13 +207,10 @@ final filteredCategoriesProvider = Provider<List<CategoryModel>>((ref) {
   final allCategories = categoriesAsync.value!;
   final allScripts = scriptsAsync.value!;
 
-  // Si la recherche est vide, on retourne toutes les catégories
   if (searchQuery.isEmpty) {
     return allCategories;
   }
 
-  // On crée un ensemble (Set) des ID de catégories qui ont des scripts correspondants.
-  // C'est très performant.
   final matchingCategoryIds =
       allScripts
           .where(
@@ -59,7 +219,6 @@ final filteredCategoriesProvider = Provider<List<CategoryModel>>((ref) {
           .map((s) => s.categoryId)
           .toSet();
 
-  // On filtre la liste des catégories pour ne garder que celles dont l'ID est dans notre ensemble.
   return allCategories
       .where((c) => matchingCategoryIds.contains(c.id))
       .toList();
@@ -77,9 +236,13 @@ class CategoryListNotifier
     state = const AsyncValue.loading();
     try {
       final categories = await _ref.read(databaseProvider).readAllCategories();
-      state = AsyncValue.data(categories);
+      if (mounted) {
+        state = AsyncValue.data(categories);
+      }
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      if (mounted) {
+        state = AsyncValue.error(e, s);
+      }
     }
   }
 
@@ -105,7 +268,6 @@ final scriptListProvider = StateNotifierProvider.family<
   AsyncValue<List<ScriptModel>>,
   int
 >((ref, categoryId) {
-  // Le provider par famille est toujours utile pour rafraîchir une seule catégorie
   ref.watch(allScriptsProvider);
   return ScriptListNotifier(ref, categoryId);
 });
@@ -125,14 +287,16 @@ class ScriptListNotifier extends StateNotifier<AsyncValue<List<ScriptModel>>> {
       final scripts = await _ref
           .read(databaseProvider)
           .readScriptsByCategory(_categoryId);
-      state = AsyncValue.data(scripts);
+      if (mounted) {
+        state = AsyncValue.data(scripts);
+      }
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      if (mounted) {
+        state = AsyncValue.error(e, s);
+      }
     }
   }
 
-  // Ces méthodes doivent maintenant invalider `allScriptsProvider` pour que
-  // toute l'application se mette à jour.
   Future<void> _refreshAllScripts() async {
     _ref.invalidate(allScriptsProvider);
   }
@@ -155,5 +319,31 @@ class ScriptListNotifier extends StateNotifier<AsyncValue<List<ScriptModel>>> {
   Future<void> updateLastExecuted(int scriptId) async {
     await _ref.read(databaseProvider).updateScriptLastExecuted(scriptId);
     _refreshAllScripts();
+  }
+}
+
+final navigatorKeyProvider = Provider((ref) => GlobalKey<NavigatorState>());
+
+final localeNotifierProvider = StateNotifierProvider<LocaleNotifier, Locale>((
+  ref,
+) {
+  return LocaleNotifier();
+});
+
+class LocaleNotifier extends StateNotifier<Locale> {
+  LocaleNotifier() : super(const Locale('fr')) {
+    _loadLocale();
+  }
+
+  Future<void> _loadLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final languageCode = prefs.getString('languageCode') ?? 'fr';
+    state = Locale(languageCode);
+  }
+
+  Future<void> setLocale(Locale locale) async {
+    state = locale;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('languageCode', locale.languageCode);
   }
 }

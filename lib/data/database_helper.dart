@@ -1,6 +1,7 @@
 // lib/data/database_helper.dart
 import 'package:gest_script/data/models/category_model.dart';
 import 'package:gest_script/data/models/script_model.dart';
+import 'package:gest_script/data/models/theme_model.dart'; // Importer le nouveau modèle
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -21,13 +22,14 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 2,
+      version: 3, // Augmenter la version de la BDD
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future _createDB(Database db, int version) async {
+    // Table existantes
     await db.execute('''
       CREATE TABLE categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,10 +52,24 @@ class DatabaseHelper {
         FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
       )
     ''');
+
+    // NOUVELLE TABLE POUR LES THÈMES
+    await db.execute('''
+      CREATE TABLE themes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        brightness INTEGER NOT NULL,
+        primaryColor INTEGER NOT NULL,
+        backgroundColor INTEGER NOT NULL,
+        cardColor INTEGER NOT NULL,
+        textColor INTEGER NOT NULL
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
+      // Migrations existantes...
       await db.execute("ALTER TABLE categories ADD COLUMN color_hex TEXT");
       await db.execute(
         "ALTER TABLE scripts ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
@@ -63,8 +79,55 @@ class DatabaseHelper {
       );
       await db.execute("ALTER TABLE scripts ADD COLUMN params_json TEXT");
     }
+    if (oldVersion < 3) {
+      // NOUVELLE MIGRATION
+      await db.execute('''
+        CREATE TABLE themes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          brightness INTEGER NOT NULL,
+          primaryColor INTEGER NOT NULL,
+          backgroundColor INTEGER NOT NULL,
+          cardColor INTEGER NOT NULL,
+          textColor INTEGER NOT NULL
+        )
+      ''');
+    }
   }
 
+  // --- CRUD pour les thèmes ---
+
+  Future<CustomThemeModel> createTheme(CustomThemeModel theme) async {
+    final db = await instance.database;
+    final id = await db.insert('themes', theme.toMap());
+    return CustomThemeModel(
+      id: id,
+      name: theme.name,
+      brightness: theme.brightness,
+      primaryColor: theme.primaryColor,
+      backgroundColor: theme.backgroundColor,
+      cardColor: theme.cardColor,
+      textColor: theme.textColor,
+    );
+  }
+
+  Future<List<CustomThemeModel>> readAllThemes() async {
+    final db = await instance.database;
+    final result = await db.query('themes', orderBy: 'name ASC');
+    return result.map((json) => CustomThemeModel.fromMap(json)).toList();
+  }
+
+  Future<int> deleteTheme(int id) async {
+    final db = await instance.database;
+    return await db.delete('themes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> clearAllThemes() async {
+    final db = await instance.database;
+    await db.delete('themes');
+  }
+
+  // --- Méthodes existantes (inchangées) ---
   Future<CategoryModel> createCategory(CategoryModel category) async {
     final db = await instance.database;
     final id = await db.insert('categories', category.toMap());
@@ -97,7 +160,6 @@ class DatabaseHelper {
     );
   }
 
-  // --- NOUVELLE MÉTHODE ---
   Future<List<ScriptModel>> readAllScripts() async {
     final db = await instance.database;
     final result = await db.query('scripts', orderBy: 'name ASC');
@@ -155,6 +217,7 @@ class DatabaseHelper {
     final db = await instance.database;
     await db.delete('scripts');
     await db.delete('categories');
+    await db.delete('themes'); // Vider aussi les thèmes
   }
 
   Future close() async {

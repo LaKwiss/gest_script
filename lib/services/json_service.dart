@@ -1,3 +1,4 @@
+// lib/services/json_service.dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,12 +10,15 @@ import 'package:gest_script/data/models/script_model.dart';
 import 'package:gest_script/data/providers/app_providers.dart';
 
 class JsonService {
-  static void exportJson(BuildContext context, WidgetRef ref) async {
-    final categories = ref.read(categoryListProvider).value ?? [];
+  final Ref _ref;
+  JsonService(this._ref);
+
+  Future<void> exportJson(BuildContext context) async {
+    final categories = _ref.read(categoryListProvider).value ?? [];
     Map<String, dynamic> exportData = {'version': 1, 'categories': []};
 
     for (var cat in categories) {
-      final scripts = await ref
+      final scripts = await _ref
           .read(databaseProvider)
           .readScriptsByCategory(cat.id!);
       exportData['categories'].add({
@@ -40,7 +44,7 @@ class JsonService {
     }
   }
 
-  static void importJson(BuildContext context, WidgetRef ref) async {
+  Future<void> importJson(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -73,7 +77,7 @@ class JsonService {
       final content = await file.readAsString();
       final data = jsonDecode(content);
 
-      await ref.read(databaseProvider).clearAllData();
+      await _ref.read(databaseProvider).clearAllData();
 
       final List categoriesData = data['categories'];
       int catOrder = 0;
@@ -83,7 +87,7 @@ class JsonService {
           displayOrder: catOrder++,
           colorHex: catData['colorHex'],
         );
-        final createdCategory = await ref
+        final createdCategory = await _ref
             .read(databaseProvider)
             .createCategory(newCategoryModel);
 
@@ -93,12 +97,11 @@ class JsonService {
             scriptData,
             createdCategory.id!,
           );
-          await ref.read(databaseProvider).createScript(newScript);
+          await _ref.read(databaseProvider).createScript(newScript);
         }
       }
 
-      // Forcer le rafraîchissement
-      ref.invalidate(categoryListProvider);
+      _ref.invalidate(categoryListProvider);
 
       if (context.mounted) {
         ScaffoldMessenger.of(

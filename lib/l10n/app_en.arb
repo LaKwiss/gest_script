@@ -1,0 +1,11 @@
+{
+  "@@locale": "en",
+  "welcomeTitle": "Welcome to Gest-Script!",
+  "onboardingThemeTitle": "Choose your theme",
+  "onboardingLanguageTitle": "Choose your language",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "finishButton": "Get Started",
+  "importThemes": "Import Themes",
+  "exportThemes": "Export Themes"
+}

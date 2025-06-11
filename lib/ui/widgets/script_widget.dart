@@ -6,15 +6,21 @@ import 'package:gest_script/services/script_runner_service.dart';
 import 'package:gest_script/ui/widgets/edit_script_dialog.dart';
 
 class ScriptWidget extends StatelessWidget {
-  const ScriptWidget({super.key, required this.script, required this.ref});
+  const ScriptWidget({
+    super.key,
+    required this.script,
+    required this.ref,
+    required this.hexColor,
+  });
 
   final ScriptModel script;
   final WidgetRef ref;
+  final Color hexColor;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: const Icon(Icons.play_arrow, color: Colors.blueAccent),
+      leading: Icon(Icons.play_arrow, color: hexColor),
       title: Text(script.name),
       subtitle: Text(
         'Dernière exécution: ${script.lastExecuted?.toLocal().toString() ?? "Jamais"}',
@@ -25,12 +31,12 @@ class ScriptWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: const Icon(Icons.edit, color: Colors.grey, size: 20),
+            icon: Icon(Icons.edit, color: hexColor, size: 20),
             tooltip: 'Modifier',
             onPressed: () => showEditScriptDialog(context, ref, script),
           ),
           IconButton(
-            icon: const Icon(Icons.delete, color: Colors.grey, size: 20),
+            icon: Icon(Icons.delete, color: hexColor, size: 20),
             tooltip: 'Supprimer',
             onPressed:
                 () => ref

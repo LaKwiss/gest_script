@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gest_script/data/providers/app_providers.dart';
-import 'package:gest_script/services/json_service.dart';
 import 'package:gest_script/services/script_runner_service.dart';
+import 'package:gest_script/ui/theme_managment_screen.dart';
 import 'package:gest_script/ui/widgets/add_category_dialog.dart';
 import 'package:gest_script/ui/widgets/add_script_dialog.dart';
 import 'package:gest_script/ui/widgets/script_widget.dart';
@@ -15,14 +15,11 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoriesAsyncValue = ref.watch(categoryListProvider);
-    final filteredCategories = ref.watch(filteredCategoriesProvider);
-    final searchQuery = ref.watch(searchQueryProvider);
+    // ... (le début du build reste identique)
 
     return Scaffold(
       body: Column(
         children: [
-          // Barre de titre
           GestureDetector(
             onPanStart: (details) => windowManager.startDragging(),
             child: Container(
@@ -43,22 +40,36 @@ class HomeScreen extends ConsumerWidget {
                   PopupMenuButton<String>(
                     tooltip: 'Options',
                     onSelected: (value) {
-                      if (value == 'import') {
-                        JsonService.importJson(context, ref);
+                      if (value == 'import_config') {
+                        ref.read(jsonServiceProvider).importJson(context);
                       }
-                      if (value == 'export') {
-                        JsonService.exportJson(context, ref);
+                      if (value == 'export_config') {
+                        ref.read(jsonServiceProvider).exportJson(context);
+                      }
+                      // NOUVEAU : Naviguer vers l'écran de gestion des thèmes
+                      if (value == 'manage_themes') {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const ThemeManagementScreen(),
+                          ),
+                        );
                       }
                     },
                     itemBuilder:
                         (BuildContext context) => <PopupMenuEntry<String>>[
                           const PopupMenuItem<String>(
-                            value: 'import',
+                            value: 'import_config',
                             child: Text('Importer une configuration'),
                           ),
                           const PopupMenuItem<String>(
-                            value: 'export',
+                            value: 'export_config',
                             child: Text('Exporter la configuration'),
+                          ),
+                          const PopupMenuDivider(),
+                          // NOUVEAU BOUTON DE MENU
+                          const PopupMenuItem<String>(
+                            value: 'manage_themes',
+                            child: Text('Gérer les thèmes'),
                           ),
                         ],
                   ),
@@ -66,7 +77,7 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // Barre de recherche
+          // ... (le reste du body reste identique)
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
             child: TextField(
@@ -84,133 +95,176 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
           Expanded(
-            child: categoriesAsyncValue.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('Erreur: $err')),
-              // Le `when` est juste pour l'état global, on utilise la liste filtrée pour construire l'UI
-              data: (_) {
-                if (filteredCategories.isEmpty) {
-                  return Center(
-                    child: Text(
-                      searchQuery.isEmpty
-                          ? "Aucune catégorie. Ajoutez-en une !"
-                          : "Aucune catégorie ne correspond à votre recherche.",
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: filteredCategories.length,
-                  itemBuilder: (context, index) {
-                    final category = filteredCategories[index];
-                    final headerColor =
-                        category.colorHex != null
-                            ? Color(int.parse('0xFF${category.colorHex!}'))
-                            : Colors.transparent;
-                    final scriptsAsyncValue = ref.watch(
-                      scriptListProvider(category.id!),
+            child: ref
+                .watch(categoryListProvider)
+                .when(
+                  loading:
+                      () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(child: Text('Erreur: $err')),
+                  data: (categories) {
+                    final filteredCategories = ref.watch(
+                      filteredCategoriesProvider,
                     );
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      color: headerColor.withValues(alpha: 0.15),
-                      clipBehavior: Clip.antiAlias,
-                      child: ExpansionTile(
-                        backgroundColor: headerColor.withValues(alpha: 0.1),
-                        shape: const Border(),
-                        collapsedShape: const Border(),
-                        title: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                category.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.color_lens_outlined,
-                                size: 20,
-                                color:
-                                    headerColor != Colors.transparent
-                                        ? headerColor
-                                        : Colors.grey,
-                              ),
-                              tooltip: 'Changer la couleur',
-                              onPressed:
-                                  () => showColorPicker(context, ref, category),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.add, size: 20),
-                              tooltip: 'Ajouter un script',
-                              onPressed:
-                                  () => showAddScriptDialog(
-                                    context,
-                                    ref,
-                                    category.id!,
-                                  ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 20),
-                              tooltip: 'Supprimer la catégorie',
-                              onPressed:
-                                  () => ref
-                                      .read(categoryListProvider.notifier)
-                                      .deleteCategory(category.id!),
-                            ),
-                          ],
+                    if (filteredCategories.isEmpty) {
+                      return Center(
+                        child: Text(
+                          ref.watch(searchQueryProvider).isEmpty
+                              ? "Aucune catégorie. Ajoutez-en une !"
+                              : "Aucune catégorie ne correspond à votre recherche.",
                         ),
-                        children: [
-                          scriptsAsyncValue.when(
-                            loading:
-                                () => const ListTile(
-                                  title: Text("Chargement..."),
-                                ),
-                            error:
-                                (err, stack) => ListTile(
-                                  title: Text('Erreur scripts: $err'),
-                                ),
-                            data: (scripts) {
-                              // On filtre aussi ici pour n'afficher que les bons scripts dans la catégorie
-                              final scriptsToShow =
-                                  scripts
-                                      .where(
-                                        (s) =>
-                                            searchQuery.isEmpty ||
-                                            s.name.toLowerCase().contains(
-                                              searchQuery.toLowerCase(),
-                                            ),
-                                      )
-                                      .toList();
-                              if (scriptsToShow.isEmpty) {
-                                return const ListTile(
-                                  title: Text("Aucun script trouvé."),
-                                );
-                              }
+                      );
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(8),
+                      itemCount: filteredCategories.length,
+                      itemBuilder: (context, index) {
+                        final category = filteredCategories[index];
+                        final headerColor =
+                            category.colorHex != null
+                                ? Color(int.parse('0xFF${category.colorHex!}'))
+                                : Theme.of(
+                                  context,
+                                ).colorScheme.primary.withAlpha(50);
+                        final scriptsAsyncValue = ref.watch(
+                          scriptListProvider(category.id!),
+                        );
 
-                              return Column(
-                                children:
-                                    scriptsToShow
-                                        .map(
-                                          (script) => ScriptWidget(
-                                            script: script,
-                                            ref: ref,
-                                          ),
-                                        )
-                                        .toList(),
-                              );
-                            },
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          color: headerColor.withOpacity(0.15),
+                          clipBehavior: Clip.antiAlias,
+                          child: ExpansionTile(
+                            iconColor:
+                                category.colorHex != null
+                                    ? headerColor
+                                    : Colors.grey,
+
+                            collapsedIconColor:
+                                category.colorHex != null
+                                    ? headerColor
+                                    : Colors.grey,
+
+                            backgroundColor: headerColor.withOpacity(0.1),
+                            shape: const Border(),
+                            collapsedShape: const Border(),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    category.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.color_lens_outlined,
+                                    size: 20,
+                                    color:
+                                        category.colorHex != null
+                                            ? headerColor
+                                            : Colors.grey,
+                                  ),
+                                  tooltip: 'Changer la couleur',
+                                  onPressed:
+                                      () => showColorPicker(
+                                        context,
+                                        ref,
+                                        category,
+                                      ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.add,
+                                    size: 20,
+                                    color:
+                                        category.colorHex != null
+                                            ? headerColor
+                                            : Colors.grey,
+                                  ),
+                                  tooltip: 'Ajouter un script',
+                                  onPressed:
+                                      () => showAddScriptDialog(
+                                        context,
+                                        ref,
+                                        category.id!,
+                                      ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    size: 20,
+                                    color:
+                                        category.colorHex != null
+                                            ? headerColor
+                                            : Colors.grey,
+                                  ),
+                                  tooltip: 'Supprimer la catégorie',
+                                  onPressed:
+                                      () => ref
+                                          .read(categoryListProvider.notifier)
+                                          .deleteCategory(category.id!),
+                                ),
+                              ],
+                            ),
+                            children: [
+                              scriptsAsyncValue.when(
+                                loading:
+                                    () => const ListTile(
+                                      title: Text("Chargement..."),
+                                    ),
+                                error:
+                                    (err, stack) => ListTile(
+                                      title: Text('Erreur scripts: $err'),
+                                    ),
+                                data: (scripts) {
+                                  final scriptsToShow =
+                                      scripts
+                                          .where(
+                                            (s) =>
+                                                ref
+                                                    .watch(searchQueryProvider)
+                                                    .isEmpty ||
+                                                s.name.toLowerCase().contains(
+                                                  ref
+                                                      .watch(
+                                                        searchQueryProvider,
+                                                      )
+                                                      .toLowerCase(),
+                                                ),
+                                          )
+                                          .toList();
+                                  if (scriptsToShow.isEmpty) {
+                                    return const ListTile(
+                                      title: Text("Aucun script trouvé."),
+                                    );
+                                  }
+
+                                  return Column(
+                                    children:
+                                        scriptsToShow
+                                            .map(
+                                              (script) => ScriptWidget(
+                                                script: script,
+                                                ref: ref,
+                                                hexColor:
+                                                    category.colorHex != null
+                                                        ? headerColor
+                                                        : Colors.red,
+                                              ),
+                                            )
+                                            .toList(),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
+                ),
           ),
         ],
       ),
