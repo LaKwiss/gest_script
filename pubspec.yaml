@@ -48,6 +48,8 @@ dependencies:
   file_picker: ^10.1.9
   shared_preferences: ^2.5.3
   intl: ^0.20.2
+  build_runner: ^2.4.15
+  flutter_gen_runner: ^5.10.0
 
 dev_dependencies:
   flutter_test:
