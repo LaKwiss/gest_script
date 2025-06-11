@@ -10,6 +10,11 @@ jobs:
   build-and-release-windows:
     runs-on: windows-latest
 
+    # --- AJOUT DE CETTE SECTION ---
+    # Donne au workflow la permission de créer des releases et d'uploader des fichiers.
+    permissions:
+      contents: write
+
     steps:
       # 1. Récupère le code source
       - name: Checkout code
@@ -25,8 +30,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. NOUVELLE ÉTAPE : Génère les fichiers de localisation
-      #    Ceci corrige l'erreur "Couldn't resolve package 'flutter_gen'".
+      # 4. Génère les fichiers de localisation
       - name: Generate localization files
         run: flutter gen-l10n
 
