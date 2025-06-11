@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gest_script/data/providers/app_providers.dart';
 import 'package:gest_script/l10n/app_localizations.dart';
+import 'package:gest_script/services/scheduling_service.dart';
 import 'package:gest_script/ui/home_screen.dart';
 import 'package:gest_script/ui/onboarding_screen.dart';
 import 'package:gest_script/ui/theme_managment_screen.dart';
-//import 'package:gest_script/generated/l10n/app_localizations.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -26,6 +26,7 @@ void main() async {
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    container.read(schedulingServiceProvider).init();
     await windowManager.ensureInitialized();
     const windowOptions = WindowOptions(
       size: Size(400, 600),
@@ -50,9 +51,6 @@ void main() async {
         ..dsn =
             'https://c3438ec4283919e05c619c5018b37926@o4507305641574400.ingest.'
             'de.sentry.io/4509479393624144'
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions
-        //for tracing.
-        // We recommend adjusting this value in production.
         ..tracesSampleRate = 1.0;
     },
     appRunner:
@@ -73,7 +71,6 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // On récupère l'état complet du thème
     final themeState = ref.watch(themeNotifierProvider);
     final locale = ref.watch(localeNotifierProvider);
     final navigatorKey = ref.watch(navigatorKeyProvider);
@@ -84,12 +81,8 @@ class MyApp extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: locale,
-
-      // Le thème appliqué est maintenant celui qui est actif dans notre état
       theme: themeState.activeThemeData,
-      // On peut laisser les thèmes par défaut au cas où
       darkTheme: defaultDarkTheme,
-
       home: hasCompletedSetup ? const HomeScreen() : const OnboardingScreen(),
     );
   }
@@ -157,7 +150,6 @@ class SystemTray with TrayListener {
       case 'exit_app':
         windowManager.destroy();
       case 'manage_themes':
-        // Affiche la fenêtre si elle est cachée, puis navigue
         windowManager.show().then((_) {
           if (!context.mounted) return;
 

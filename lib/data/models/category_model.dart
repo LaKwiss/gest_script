@@ -11,8 +11,8 @@ class CategoryModel {
     return CategoryModel(
       name: map['name'] as String,
       displayOrder: map['display_order'] as int,
-      id: map['id'] as int,
-      colorHex: map['color_hex'] as String,
+      id: map['id'] as int?,
+      colorHex: map['color_hex'] as String?,
     );
   }
 
