@@ -10,8 +10,8 @@ jobs:
   build-and-release-windows:
     runs-on: windows-latest
 
-    # --- AJOUT DE CETTE SECTION ---
-    # Donne au workflow la permission de créer des releases et d'uploader des fichiers.
+    if: contains(github.event.head_commit.message, '#release')
+
     permissions:
       contents: write
 
@@ -42,7 +42,7 @@ jobs:
       - name: Prepare release details
         id: prepare_release
         run: |
-          $TAG_NAME = "release-$(Get-Date -Format 'yyyy-MM-dd-HH-mm')"
+          $TAG_NAME = "release-$(Get-Date -Format 'yyyy-MM-dd')"
           echo "TAG_NAME=$TAG_NAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "ASSET_NAME=gest-script-windows-$TAG_NAME.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
