@@ -8,7 +8,7 @@ import 'package:gest_script/data/providers/app_providers.dart';
 import 'package:gest_script/ui/home_screen.dart';
 import 'package:gest_script/utils/scheduling_utils.dart';
 
-// Provider pour le service, accessible globalement
+// Provider for the service, accessible globalement
 final schedulingServiceProvider = Provider<SchedulingService>((ref) {
   return SchedulingService(ref);
 });
@@ -36,7 +36,8 @@ class SchedulingService {
     log('SchedulingService détruit.');
   }
 
-  /// Vérifie la base de données pour les scripts dont l'heure d'exécution est dépassée.
+  /// Vérifie la base de données pour les scripts dont l'heure d'exécution est
+  /// dépassée.
   Future<void> _checkScheduledScripts() async {
     log('Vérification des scripts programmés...');
     final now = DateTime.now();
@@ -58,9 +59,19 @@ class SchedulingService {
     for (final script in dueScripts) {
       log('Exécution du script programmé : ${script.name}');
 
-      // Exécute la commande du script.
+      // Prépare la commande en remplaçant les paramètres par leurs valeurs par
+      // défaut.
+      var commandToRun = script.command;
+      if (script.scheduledParams.isNotEmpty) {
+        script.scheduledParams.forEach((key, value) {
+          commandToRun = commandToRun.replaceAll('{$key}', value);
+        });
+        log('Commande avec paramètres remplacés : $commandToRun');
+      }
+
+      // Exécute la commande finale du script.
       final runner = _ref.read(scriptRunnerServiceProvider);
-      await runner.run(script.command, runAsAdmin: script.isAdmin);
+      await runner.run(commandToRun, runAsAdmin: script.isAdmin);
 
       // Met à jour la date de dernière exécution.
       await db.updateScriptLastExecuted(script.id!);
@@ -85,7 +96,8 @@ class SchedulingService {
         final nextRun = calculateNextRunTime(
           scheduledTime: scheduledTime,
           repeatDays: script.repeatDays,
-          // On part de l'heure prévue pour éviter les décalages si l'app était fermée.
+          // On part de l'heure prévue pour éviter les décalages si l'app était
+          // fermée.
           from: script.nextRunTime,
         );
         final updatedScript = script.copyWith(nextRunTime: nextRun);

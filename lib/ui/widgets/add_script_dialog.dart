@@ -42,7 +42,6 @@ class _AddScriptDialogContentState
   var _isScheduled = false;
   var _scheduledTime = const TimeOfDay(hour: 8, minute: 0);
   final List<int> _repeatDays = [];
-
   final Map<int, String> _weekDays = {
     DateTime.monday: 'Lun',
     DateTime.tuesday: 'Mar',
@@ -53,23 +52,52 @@ class _AddScriptDialogContentState
     DateTime.sunday: 'Dim',
   };
 
+  // Controllers for scheduled parameter values
+  final Map<String, TextEditingController> _paramValueControllers = {};
+  List<String> _parsedParams = [];
+
   @override
   void initState() {
     super.initState();
-    // Listen to command changes to enable/disable scheduling
-    _commandController.addListener(() => setState(() {}));
+    _commandController.addListener(_updateParsedParams);
+  }
+
+  void _updateParsedParams() {
+    final params =
+        RegExp(r'\{(\w+)\}')
+            .allMatches(_commandController.text)
+            .map((m) => m.group(1)!)
+            .toSet()
+            .toList();
+
+    // Avoid unnecessary rebuilds if the list hasn't changed
+    if (params.toString() != _parsedParams.toString()) {
+      setState(() {
+        _parsedParams = params;
+        // Create new controllers for new params
+        for (final param in _parsedParams) {
+          if (!_paramValueControllers.containsKey(param)) {
+            _paramValueControllers[param] = TextEditingController();
+          }
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
+    _commandController.removeListener(_updateParsedParams);
     _nameController.dispose();
     _commandController.dispose();
     _paramsController.dispose();
+    for (final controller in _paramValueControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _selectTime() async {
-    final TimeOfDay? picked = await showTimePicker(
+    final picked = await showTimePicker(
       context: context,
       initialTime: _scheduledTime,
     );
@@ -87,10 +115,14 @@ class _AddScriptDialogContentState
               ? _paramsController.text.split(',').map((p) => p.trim()).toList()
               : <String>[];
 
-      String? scheduledTimeString =
-          _isScheduled
-              ? '${_scheduledTime.hour.toString().padLeft(2, '0')}:${_scheduledTime.minute.toString().padLeft(2, '0')}'
-              : null;
+      final String? scheduledTimeString;
+      if (_isScheduled) {
+        scheduledTimeString =
+            '${_scheduledTime.hour.toString().padLeft(2, '0')}: '
+            '${_scheduledTime.minute.toString().padLeft(2, '0')}';
+      } else {
+        scheduledTimeString = null;
+      }
 
       DateTime? nextRun;
       if (_isScheduled) {
@@ -98,6 +130,13 @@ class _AddScriptDialogContentState
           scheduledTime: _scheduledTime,
           repeatDays: _repeatDays,
         );
+      }
+
+      final scheduledParams = <String, String>{};
+      if (_isScheduled) {
+        for (final paramName in _parsedParams) {
+          scheduledParams[paramName] = _paramValueControllers[paramName]!.text;
+        }
       }
 
       final newScript = ScriptModel(
@@ -111,6 +150,7 @@ class _AddScriptDialogContentState
         scheduledTime: scheduledTimeString,
         repeatDays: _isScheduled ? _repeatDays : [],
         nextRunTime: nextRun,
+        scheduledParams: scheduledParams,
       );
 
       widget.ref
@@ -122,9 +162,6 @@ class _AddScriptDialogContentState
 
   @override
   Widget build(BuildContext context) {
-    // Un script avec des paramètres d'exécution ne peut pas être planifié.
-    final bool commandHasParams = _commandController.text.contains('{');
-
     return AlertDialog(
       title: const Text('Nouveau Script'),
       content: Form(
@@ -142,9 +179,12 @@ class _AddScriptDialogContentState
               ),
               TextFormField(
                 controller: _commandController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Commande',
-                  hintText: 'ex: git commit -m "{message}"',
+                  hintText:
+                      _isScheduled
+                          ? 'ex: python script.py'
+                          : 'ex: python script.py {message}',
                 ),
                 validator:
                     (value) =>
@@ -156,6 +196,7 @@ class _AddScriptDialogContentState
                   labelText: 'Noms des paramètres (séparés par virgule)',
                   hintText: 'ex: message,auteur',
                 ),
+                enabled: _isScheduled == false,
               ),
               const SizedBox(height: 16),
               CheckboxListTile(
@@ -171,22 +212,13 @@ class _AddScriptDialogContentState
                 onChanged: (val) => setState(() => _showOutput = val!),
                 controlAffinity: ListTileControlAffinity.leading,
                 contentPadding: EdgeInsets.zero,
+                enabled: _isScheduled == false,
               ),
               const Divider(height: 32),
               SwitchListTile(
                 title: const Text("Programmer l'exécution"),
-                subtitle:
-                    commandHasParams
-                        ? const Text(
-                          "Indisponible pour les scripts avec paramètres",
-                          style: TextStyle(color: Colors.orange),
-                        )
-                        : null,
                 value: _isScheduled,
-                onChanged:
-                    commandHasParams
-                        ? null
-                        : (val) => setState(() => _isScheduled = val),
+                onChanged: (val) => setState(() => _isScheduled = val),
               ),
               if (_isScheduled) ...[
                 const SizedBox(height: 8),
@@ -227,10 +259,32 @@ class _AddScriptDialogContentState
                   child: Text(
                     _repeatDays.isEmpty
                         ? "S'exécutera une seule fois."
-                        : "Répéter les jours sélectionnés.",
+                        : 'Répéter les jours sélectionnés.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
+                // Section for parameter values
+                if (_parsedParams.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Valeurs pour la planification',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  ..._parsedParams.map((param) {
+                    return TextFormField(
+                      controller: _paramValueControllers[param],
+                      decoration: InputDecoration(
+                        labelText: 'Valeur pour {$param}',
+                      ),
+                      validator:
+                          (value) =>
+                              value == null || value.isEmpty
+                                  ? 'Une valeur est requise pour '
+                                      'la planification'
+                                  : null,
+                    );
+                  }),
+                ],
               ],
             ],
           ),
@@ -242,15 +296,14 @@ class _AddScriptDialogContentState
           onPressed: () => Navigator.of(context).pop(),
         ),
         TextButton(
-          child: const Text('Ajouter'),
           onPressed: _onSave,
+          child: const Text('Ajouter'),
         ),
       ],
     );
   }
 }
 
-// Le dialogue pour les paramètres reste inchangé
 Future<List<String>?> showParamsDialog(
   BuildContext context,
   List<String> params,

@@ -32,12 +32,12 @@ DateTime? calculateNextRunTime({
 
   // Si la tâche est récurrente, on cherche le prochain jour valide.
   // On commence par vérifier pour aujourd'hui et les 6 jours suivants.
-  for (int i = 0; i < 7; i++) {
+  for (var i = 0; i < 7; i++) {
     final checkingDate = now.add(Duration(days: i));
 
     // Vérifie si le jour de la semaine est dans notre liste de répétition.
     if (repeatDays.contains(checkingDate.weekday)) {
-      var nextScheduledDateTime = DateTime(
+      final nextScheduledDateTime = DateTime(
         checkingDate.year,
         checkingDate.month,
         checkingDate.day,
@@ -45,9 +45,11 @@ DateTime? calculateNextRunTime({
         scheduledTime.minute,
       );
 
-      // Si on vérifie pour aujourd'hui (i=0), il faut s'assurer que l'heure n'est pas déjà passée.
+      // Si on vérifie pour aujourd'hui (i=0), il faut s'assurer que
+      //l'heure n'est pas déjà passée.
       if (i == 0 && nextScheduledDateTime.isBefore(now)) {
-        continue; // L'heure est passée pour aujourd'hui, on passe au prochain jour valide.
+        continue; // L'heure est passée pour aujourd'hui,
+        //on passe au prochain jour valide.
       }
 
       return nextScheduledDateTime;
@@ -56,7 +58,7 @@ DateTime? calculateNextRunTime({
 
   // En théorie, ne devrait pas être atteint si repeatDays n'est pas vide.
   // C'est une sécurité pour trouver le prochain jour la semaine suivante.
-  for (int i = 7; i < 14; i++) {
+  for (var i = 7; i < 14; i++) {
     final checkingDate = now.add(Duration(days: i));
     if (repeatDays.contains(checkingDate.weekday)) {
       return DateTime(

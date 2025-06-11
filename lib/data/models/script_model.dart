@@ -11,11 +11,11 @@ class ScriptModel {
     this.isAdmin = false,
     this.showOutput = false,
     this.params = const [],
-    // Nouveaux champs pour la planification
     this.isScheduled = false,
-    this.scheduledTime, // ex: "08:30"
-    this.repeatDays = const [], // ex: [1, 2, 3, 4, 5] pour Lun-Ven
+    this.scheduledTime,
+    this.repeatDays = const [],
     this.nextRunTime,
+    this.scheduledParams = const {},
   });
 
   factory ScriptModel.fromMap(Map<String, dynamic> map) {
@@ -36,7 +36,6 @@ class ScriptModel {
                 jsonDecode(map['params_json'] as String) as List,
               )
               : [],
-      // Nouveaux champs
       isScheduled: map['is_scheduled'] == 1,
       scheduledTime: map['scheduled_time'] as String?,
       repeatDays:
@@ -49,6 +48,13 @@ class ScriptModel {
           map['next_run_time'] != null
               ? DateTime.parse(map['next_run_time'] as String)
               : null,
+      scheduledParams:
+          map['scheduled_params_json'] != null
+              ? Map<String, String>.from(
+                jsonDecode(map['scheduled_params_json'] as String)
+                    as Map<String, dynamic>,
+              )
+              : {},
     );
   }
 
@@ -60,10 +66,8 @@ class ScriptModel {
       showOutput: json['showOutput'] as bool? ?? false,
       params: List<String>.from(json['params'] as List<dynamic>? ?? []),
       categoryId: categoryId,
-      // La planification n'est pas incluse dans l'import/export JSON
     );
   }
-
   final int? id;
   final String name;
   final String command;
@@ -72,12 +76,11 @@ class ScriptModel {
   final bool isAdmin;
   final bool showOutput;
   final List<String> params;
-
-  // Nouveaux champs
   final bool isScheduled;
   final String? scheduledTime; // "HH:mm"
   final List<int> repeatDays;
   final DateTime? nextRunTime;
+  final Map<String, String> scheduledParams;
 
   Map<String, dynamic> toMap() {
     return {
@@ -89,11 +92,11 @@ class ScriptModel {
       'is_admin': isAdmin ? 1 : 0,
       'show_output': showOutput ? 1 : 0,
       'params_json': jsonEncode(params),
-      // Nouveaux champs
       'is_scheduled': isScheduled ? 1 : 0,
       'scheduled_time': scheduledTime,
       'repeat_days_json': jsonEncode(repeatDays),
       'next_run_time': nextRunTime?.toIso8601String(),
+      'scheduled_params_json': jsonEncode(scheduledParams),
     };
   }
 
@@ -120,6 +123,7 @@ class ScriptModel {
     String? scheduledTime,
     List<int>? repeatDays,
     DateTime? nextRunTime,
+    Map<String, String>? scheduledParams,
     bool setScheduledTimeToNull = false,
     bool setNextRunTimeToNull = false,
   }) {
@@ -138,6 +142,7 @@ class ScriptModel {
       repeatDays: repeatDays ?? this.repeatDays,
       nextRunTime:
           setNextRunTimeToNull ? null : (nextRunTime ?? this.nextRunTime),
+      scheduledParams: scheduledParams ?? this.scheduledParams,
     );
   }
 }

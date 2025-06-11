@@ -21,13 +21,14 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return openDatabase(
       path,
-      version: 4, // <-- AUGMENTER LA VERSION À 4
+      version: 5, // Augmenter la version de la BDD
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
+    // Table existantes
     await db.execute('''
       CREATE TABLE categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,15 +48,16 @@ class DatabaseHelper {
         is_admin INTEGER NOT NULL DEFAULT 0,
         show_output INTEGER NOT NULL DEFAULT 0,
         params_json TEXT,
-        -- NOUVELLES COLONNES POUR LA PLANIFICATION
         is_scheduled INTEGER NOT NULL DEFAULT 0,
         scheduled_time TEXT,
         repeat_days_json TEXT,
         next_run_time TEXT,
+        scheduled_params_json TEXT,
         FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
       )
     ''');
 
+    // NOUVELLE TABLE POUR LES THÈMES
     await db.execute('''
       CREATE TABLE themes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,6 +73,7 @@ class DatabaseHelper {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
+      // Migrations existantes...
       await db.execute('ALTER TABLE categories ADD COLUMN color_hex TEXT');
       await db.execute(
         'ALTER TABLE scripts ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0',
@@ -81,6 +84,7 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE scripts ADD COLUMN params_json TEXT');
     }
     if (oldVersion < 3) {
+      // NOUVELLE MIGRATION
       await db.execute('''
         CREATE TABLE themes (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,18 +97,22 @@ class DatabaseHelper {
         )
       ''');
     }
-    // NOUVELLE MIGRATION
     if (oldVersion < 4) {
       await db.execute(
-        'ALTER TABLE scripts ADD COLUMN is_scheduled INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE scripts ADD COLUMN is_scheduled '
+        'INTEGER NOT NULL DEFAULT 0',
       );
       await db.execute('ALTER TABLE scripts ADD COLUMN scheduled_time TEXT');
       await db.execute('ALTER TABLE scripts ADD COLUMN repeat_days_json TEXT');
       await db.execute('ALTER TABLE scripts ADD COLUMN next_run_time TEXT');
     }
+    if (oldVersion < 5) {
+      await db.execute(
+        'ALTER TABLE scripts ADD COLUMN scheduled_params_json TEXT',
+      );
+    }
   }
 
-  // ... le reste du fichier (méthodes CRUD) reste inchangé
   // --- CRUD pour les thèmes ---
 
   Future<CustomThemeModel> createTheme(CustomThemeModel theme) async {
