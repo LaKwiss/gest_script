@@ -11,7 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
-//import 'package:gest_script/generated/l10n/app_localizations.dart';
+//import 'package:gest_script/generated/l10n/app_localizations.dart';import 'package:sentry_flutter/sentry_flutter.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,12 +43,22 @@ void main() async {
     SystemTray.init(container);
   }
 
-  runApp(
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = 'https://c3438ec4283919e05c619c5018b37926@o4507305641574400.ingest.de.sentry.io/4509479393624144';
+      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+      // We recommend adjusting this value in production.
+      options.tracesSampleRate = 1.0;
+    },
+    appRunner: () => runApp(SentryWidget(child: 
     UncontrolledProviderScope(
       container: container,
       child: MyApp(hasCompletedSetup: hasCompletedSetup),
     ),
+  )),
   );
+  // TODO: Remove this line after sending the first sample event to sentry.
+  await Sentry.captureException(Exception('This is a sample exception.'));
 }
 
 class MyApp extends ConsumerWidget {
