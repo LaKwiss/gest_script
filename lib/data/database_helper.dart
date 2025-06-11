@@ -6,10 +6,9 @@ import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
+  DatabaseHelper._init();
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
-
-  DatabaseHelper._init();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -20,7 +19,7 @@ class DatabaseHelper {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-    return await openDatabase(
+    return openDatabase(
       path,
       version: 3, // Augmenter la version de la BDD
       onCreate: _createDB,
@@ -28,7 +27,7 @@ class DatabaseHelper {
     );
   }
 
-  Future _createDB(Database db, int version) async {
+  Future<void> _createDB(Database db, int version) async {
     // Table existantes
     await db.execute('''
       CREATE TABLE categories (
@@ -70,14 +69,14 @@ class DatabaseHelper {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       // Migrations existantes...
-      await db.execute("ALTER TABLE categories ADD COLUMN color_hex TEXT");
+      await db.execute('ALTER TABLE categories ADD COLUMN color_hex TEXT');
       await db.execute(
-        "ALTER TABLE scripts ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
+        'ALTER TABLE scripts ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0',
       );
       await db.execute(
-        "ALTER TABLE scripts ADD COLUMN show_output INTEGER NOT NULL DEFAULT 0",
+        'ALTER TABLE scripts ADD COLUMN show_output INTEGER NOT NULL DEFAULT 0',
       );
-      await db.execute("ALTER TABLE scripts ADD COLUMN params_json TEXT");
+      await db.execute('ALTER TABLE scripts ADD COLUMN params_json TEXT');
     }
     if (oldVersion < 3) {
       // NOUVELLE MIGRATION
@@ -114,12 +113,12 @@ class DatabaseHelper {
   Future<List<CustomThemeModel>> readAllThemes() async {
     final db = await instance.database;
     final result = await db.query('themes', orderBy: 'name ASC');
-    return result.map((json) => CustomThemeModel.fromMap(json)).toList();
+    return result.map(CustomThemeModel.fromMap).toList();
   }
 
   Future<int> deleteTheme(int id) async {
     final db = await instance.database;
-    return await db.delete('themes', where: 'id = ?', whereArgs: [id]);
+    return db.delete('themes', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> clearAllThemes() async {
@@ -142,17 +141,17 @@ class DatabaseHelper {
   Future<List<CategoryModel>> readAllCategories() async {
     final db = await instance.database;
     final result = await db.query('categories', orderBy: 'display_order ASC');
-    return result.map((json) => CategoryModel.fromMap(json)).toList();
+    return result.map(CategoryModel.fromMap).toList();
   }
 
   Future<int> deleteCategory(int id) async {
     final db = await instance.database;
-    return await db.delete('categories', where: 'id = ?', whereArgs: [id]);
+    return db.delete('categories', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> updateCategoryColor(int id, String colorHex) async {
     final db = await instance.database;
-    return await db.update(
+    return db.update(
       'categories',
       {'color_hex': colorHex},
       where: 'id = ?',
@@ -163,7 +162,7 @@ class DatabaseHelper {
   Future<List<ScriptModel>> readAllScripts() async {
     final db = await instance.database;
     final result = await db.query('scripts', orderBy: 'name ASC');
-    return result.map((json) => ScriptModel.fromMap(json)).toList();
+    return result.map(ScriptModel.fromMap).toList();
   }
 
   Future<List<ScriptModel>> readScriptsByCategory(int categoryId) async {
@@ -174,7 +173,7 @@ class DatabaseHelper {
       whereArgs: [categoryId],
       orderBy: 'name ASC',
     );
-    return result.map((json) => ScriptModel.fromMap(json)).toList();
+    return result.map(ScriptModel.fromMap).toList();
   }
 
   Future<ScriptModel> createScript(ScriptModel script) async {
@@ -190,7 +189,7 @@ class DatabaseHelper {
 
   Future<int> updateScript(ScriptModel script) async {
     final db = await instance.database;
-    return await db.update(
+    return db.update(
       'scripts',
       script.toMap(),
       where: 'id = ?',
@@ -210,7 +209,7 @@ class DatabaseHelper {
 
   Future<int> deleteScript(int id) async {
     final db = await instance.database;
-    return await db.delete('scripts', where: 'id = ?', whereArgs: [id]);
+    return db.delete('scripts', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> clearAllData() async {
@@ -220,8 +219,8 @@ class DatabaseHelper {
     await db.delete('themes'); // Vider aussi les thèmes
   }
 
-  Future close() async {
+  Future<void> close() async {
     final db = await instance.database;
-    db.close();
+    await db.close();
   }
 }

@@ -6,7 +6,7 @@ Future<void> showOutputDialog(
   BuildContext context,
   ProcessResult result,
 ) async {
-  showDialog(
+  await showDialog<void>(
     context: context,
     builder:
         (context) => AlertDialog(

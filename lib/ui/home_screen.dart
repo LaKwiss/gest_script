@@ -30,7 +30,7 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(width: 48),
                   const Spacer(),
                   const Text(
-                    "Gest-Script",
+                    'Gest-Script',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -49,7 +49,7 @@ class HomeScreen extends ConsumerWidget {
                       // NOUVEAU : Naviguer vers l'écran de gestion des thèmes
                       if (value == 'manage_themes') {
                         Navigator.of(context).push(
-                          MaterialPageRoute(
+                          MaterialPageRoute<void>(
                             builder: (context) => const ThemeManagementScreen(),
                           ),
                         );
@@ -109,8 +109,9 @@ class HomeScreen extends ConsumerWidget {
                       return Center(
                         child: Text(
                           ref.watch(searchQueryProvider).isEmpty
-                              ? "Aucune catégorie. Ajoutez-en une !"
-                              : "Aucune catégorie ne correspond à votre recherche.",
+                              ? 'Aucune catégorie. Ajoutez-en une !'
+                              : 'Aucune catégorie ne correspond à votre '
+                                  'recherche.',
                         ),
                       );
                     }
@@ -131,7 +132,7 @@ class HomeScreen extends ConsumerWidget {
 
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 4),
-                          color: headerColor.withOpacity(0.15),
+                          color: headerColor.withValues(alpha: 0.15),
                           clipBehavior: Clip.antiAlias,
                           child: ExpansionTile(
                             iconColor:
@@ -144,7 +145,7 @@ class HomeScreen extends ConsumerWidget {
                                     ? headerColor
                                     : Colors.grey,
 
-                            backgroundColor: headerColor.withOpacity(0.1),
+                            backgroundColor: headerColor.withValues(alpha: 0.1),
                             shape: const Border(),
                             collapsedShape: const Border(),
                             title: Row(
@@ -212,7 +213,7 @@ class HomeScreen extends ConsumerWidget {
                               scriptsAsyncValue.when(
                                 loading:
                                     () => const ListTile(
-                                      title: Text("Chargement..."),
+                                      title: Text('Chargement...'),
                                     ),
                                 error:
                                     (err, stack) => ListTile(
@@ -237,7 +238,7 @@ class HomeScreen extends ConsumerWidget {
                                           .toList();
                                   if (scriptsToShow.isEmpty) {
                                     return const ListTile(
-                                      title: Text("Aucun script trouvé."),
+                                      title: Text('Aucun script trouvé.'),
                                     );
                                   }
 
@@ -277,4 +278,6 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-final scriptRunnerServiceProvider = Provider((ref) => ScriptRunnerService());
+final Provider<ScriptRunnerService> scriptRunnerServiceProvider = Provider(
+  (ref) => ScriptRunnerService(),
+);

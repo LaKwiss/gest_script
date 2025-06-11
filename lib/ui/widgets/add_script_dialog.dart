@@ -10,10 +10,10 @@ void showAddScriptDialog(BuildContext context, WidgetRef ref, int categoryId) {
   final paramsController = TextEditingController(); // Pour les paramètres
   final formKey = GlobalKey<FormState>();
 
-  bool isAdmin = false;
-  bool showOutput = false;
+  var isAdmin = false;
+  var showOutput = false;
 
-  showDialog(
+  showDialog<void>(
     context: context,
     builder: (context) {
       // On utilise un StatefulWidget pour gérer l'état des Checkbox
@@ -64,7 +64,7 @@ void showAddScriptDialog(BuildContext context, WidgetRef ref, int categoryId) {
                       contentPadding: EdgeInsets.zero,
                     ),
                     CheckboxListTile(
-                      title: const Text("Afficher la sortie après exécution"),
+                      title: const Text('Afficher la sortie après exécution'),
                       value: showOutput,
                       onChanged: (val) => setState(() => showOutput = val!),
                       controlAffinity: ListTileControlAffinity.leading,
@@ -152,7 +152,7 @@ Future<List<String>?> showParamsDialog(
           actions: [
             TextButton(
               child: const Text('Annuler'),
-              onPressed: () => Navigator.of(context).pop(null),
+              onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
               child: const Text('Lancer'),

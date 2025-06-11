@@ -1,5 +1,6 @@
 // lib/main.dart
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gest_script/data/providers/app_providers.dart';
@@ -7,18 +8,18 @@ import 'package:gest_script/l10n/app_localizations.dart';
 import 'package:gest_script/ui/home_screen.dart';
 import 'package:gest_script/ui/onboarding_screen.dart';
 import 'package:gest_script/ui/theme_managment_screen.dart';
+//import 'package:gest_script/generated/l10n/app_localizations.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
-//import 'package:gest_script/generated/l10n/app_localizations.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final prefs = await SharedPreferences.getInstance();
-  final bool hasCompletedSetup = prefs.getBool('hasCompletedSetup') ?? false;
+  final hasCompletedSetup = prefs.getBool('hasCompletedSetup') ?? false;
 
   final container = ProviderContainer();
 
@@ -26,7 +27,7 @@ void main() async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     await windowManager.ensureInitialized();
-    WindowOptions windowOptions = const WindowOptions(
+    const windowOptions = WindowOptions(
       size: Size(400, 600),
       center: true,
       backgroundColor: Colors.transparent,
@@ -35,7 +36,7 @@ void main() async {
       windowButtonVisibility: false,
     );
 
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.setAsFrameless();
       await windowManager.hide();
     });
@@ -45,11 +46,14 @@ void main() async {
 
   await SentryFlutter.init(
     (options) {
-      options.dsn =
-          'https://c3438ec4283919e05c619c5018b37926@o4507305641574400.ingest.de.sentry.io/4509479393624144';
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-      // We recommend adjusting this value in production.
-      options.tracesSampleRate = 1.0;
+      options
+        ..dsn =
+            'https://c3438ec4283919e05c619c5018b37926@o4507305641574400.ingest.'
+            'de.sentry.io/4509479393624144'
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions
+        //for tracing.
+        // We recommend adjusting this value in production.
+        ..tracesSampleRate = 1.0;
     },
     appRunner:
         () => runApp(
@@ -64,9 +68,8 @@ void main() async {
 }
 
 class MyApp extends ConsumerWidget {
+  const MyApp({required this.hasCompletedSetup, super.key});
   final bool hasCompletedSetup;
-
-  const MyApp({super.key, required this.hasCompletedSetup});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -93,23 +96,22 @@ class MyApp extends ConsumerWidget {
 }
 
 class SystemTray with TrayListener {
-  static final SystemTray _instance = SystemTray._internal();
-  static late ProviderContainer _container;
-
   factory SystemTray() {
     return _instance;
   }
 
   SystemTray._internal();
+  static final SystemTray _instance = SystemTray._internal();
+  static late ProviderContainer _container;
 
   static void init(ProviderContainer container) {
     _container = container;
     _instance._createTray();
   }
 
-  void _createTray() async {
+  Future<void> _createTray() async {
     await trayManager.setIcon('assets/app_icon.ico');
-    Menu menu = await _getMenu();
+    final menu = await _getMenu();
     await trayManager.setContextMenu(menu);
     trayManager.addListener(this);
   }
@@ -152,20 +154,17 @@ class SystemTray with TrayListener {
         windowManager.isVisible().then((visible) {
           visible ? windowManager.hide() : windowManager.show();
         });
-        break;
       case 'exit_app':
         windowManager.destroy();
-        break;
       case 'manage_themes':
         // Affiche la fenêtre si elle est cachée, puis navigue
         windowManager.show().then((_) {
           Navigator.of(context).push(
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (context) => const ThemeManagementScreen(),
             ),
           );
         });
-        break;
     }
   }
 }

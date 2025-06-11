@@ -16,7 +16,7 @@ class ThemeManagementScreen extends ConsumerWidget {
       body: ListView(
         children: [
           ListTile(
-            title: const Text("Thème Clair (défaut)"),
+            title: const Text('Thème Clair (défaut)'),
             leading: const Icon(Icons.wb_sunny_outlined),
             onTap: () => themeNotifier.setThemeMode(ThemeMode.light),
             trailing:
@@ -26,7 +26,7 @@ class ThemeManagementScreen extends ConsumerWidget {
                     : null,
           ),
           ListTile(
-            title: const Text("Thème Sombre (défaut)"),
+            title: const Text('Thème Sombre (défaut)'),
             leading: const Icon(Icons.nightlight_outlined),
             onTap: () => themeNotifier.setThemeMode(ThemeMode.dark),
             trailing:
@@ -37,14 +37,14 @@ class ThemeManagementScreen extends ConsumerWidget {
           ),
           const Divider(),
           const Padding(
-            padding: EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(16),
             child: Text(
-              "Thèmes Personnalisés",
+              'Thèmes Personnalisés',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           if (themeState.customThemes.isEmpty)
-            const Center(child: Text("Aucun thème personnalisé importé.")),
+            const Center(child: Text('Aucun thème personnalisé importé.')),
           ...themeState.customThemes.map((theme) {
             return ListTile(
               title: Text(theme.name),
@@ -77,14 +77,14 @@ class ThemeManagementScreen extends ConsumerWidget {
           children: [
             ElevatedButton.icon(
               icon: const Icon(Icons.upload_file),
-              label: const Text("Importer"),
+              label: const Text('Importer'),
               onPressed: () {
                 ref.read(themeServiceProvider).importThemes(context);
               },
             ),
             ElevatedButton.icon(
               icon: const Icon(Icons.download),
-              label: const Text("Exporter"),
+              label: const Text('Exporter'),
               onPressed: () {
                 ref.read(themeServiceProvider).exportThemes(context);
               },

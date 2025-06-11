@@ -6,7 +6,7 @@ import 'package:gest_script/data/providers/app_providers.dart';
 
 void showAddCategoryDialog(BuildContext context, WidgetRef ref) {
   final controller = TextEditingController();
-  showDialog(
+  showDialog<void>(
     context: context,
     builder: (context) {
       return AlertDialog(
@@ -27,16 +27,20 @@ void showAddCategoryDialog(BuildContext context, WidgetRef ref) {
               if (controller.text.isNotEmpty) {
                 // --- DÉBUT DE LA MODIFICATION ---
 
-                // 1. On récupère la liste actuelle des catégories depuis le provider.
-                // Le `.value ?? []` gère le cas où la liste est en cours de chargement ou en erreur.
+                // 1. On récupère la liste actuelle des catégories depuis le
+                // provider.
+                // Le `.value ?? []` gère le cas où la liste est en cours de
+                //chargement ou en erreur.
                 final currentCategories =
                     ref.read(categoryListProvider).value ?? [];
 
                 // 2. Le nouvel ordre sera la taille actuelle de la liste.
-                // S'il y a 0 catégories, l'ordre sera 0. S'il y en a 3, l'ordre sera 3.
+                // S'il y a 0 catégories, l'ordre sera 0. S'il y en a 3, l'ordre
+                // sera 3.
                 final newOrder = currentCategories.length;
 
-                // 3. On crée un objet CategoryModel complet avec le nom et le nouvel ordre.
+                // 3. On crée un objet CategoryModel complet avec le nom et le
+                //nouvel ordre.
                 final newCategory = CategoryModel(
                   name: controller.text,
                   displayOrder: newOrder,

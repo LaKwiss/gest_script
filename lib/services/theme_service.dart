@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gest_script/data/database_helper.dart';
 import 'package:gest_script/data/models/theme_model.dart';
 import 'package:gest_script/data/providers/app_providers.dart';
 

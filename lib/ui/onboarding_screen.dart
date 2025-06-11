@@ -121,8 +121,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _completeSetup() async {
     // Mettre à jour les providers
-    ref.read(themeNotifierProvider.notifier).setTheme(_selectedTheme);
-    ref.read(localeNotifierProvider.notifier).setLocale(_selectedLocale);
+    await ref.read(themeNotifierProvider.notifier).setTheme(_selectedTheme);
+    await ref.read(localeNotifierProvider.notifier).setLocale(_selectedLocale);
 
     // Marquer la configuration comme terminée
     final prefs = await SharedPreferences.getInstance();
@@ -130,8 +130,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     // Naviguer vers l'écran d'accueil
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (context) => const HomeScreen()),
       );
     }
   }

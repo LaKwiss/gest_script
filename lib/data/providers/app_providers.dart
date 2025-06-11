@@ -38,17 +38,16 @@ final defaultDarkTheme = ThemeData(
 
 // --- État du thème ---
 class ThemeState {
+  ThemeState({
+    required this.activeThemeData,
+    required this.currentThemeMode,
+    this.customThemes = const [],
+    this.activeCustomThemeId,
+  });
   final ThemeData activeThemeData;
   final List<CustomThemeModel> customThemes;
   final int? activeCustomThemeId;
   final ThemeMode currentThemeMode;
-
-  ThemeState({
-    required this.activeThemeData,
-    this.customThemes = const [],
-    this.activeCustomThemeId,
-    required this.currentThemeMode,
-  });
 
   ThemeState copyWith({
     ThemeData? activeThemeData,
@@ -69,7 +68,6 @@ class ThemeState {
   }
 }
 
-// --- Notifier du Thème (Amélioré) ---
 final themeNotifierProvider = StateNotifierProvider<ThemeNotifier, ThemeState>((
   ref,
 ) {
@@ -77,7 +75,6 @@ final themeNotifierProvider = StateNotifierProvider<ThemeNotifier, ThemeState>((
 });
 
 class ThemeNotifier extends StateNotifier<ThemeState> {
-  final Ref _ref;
   ThemeNotifier(this._ref)
     : super(
         ThemeState(
@@ -87,6 +84,7 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
       ) {
     _loadInitialState();
   }
+  final Ref _ref;
 
   Future<void> _loadInitialState() async {
     final prefs = await SharedPreferences.getInstance();
@@ -100,7 +98,7 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
     final activeCustomThemeId = prefs.getInt('activeCustomThemeId');
     final currentThemeMode = ThemeMode.values[themeModeIndex];
 
-    ThemeData activeThemeData =
+    var activeThemeData =
         currentThemeMode == ThemeMode.light
             ? defaultLightTheme
             : defaultDarkTheme;
@@ -224,11 +222,10 @@ final filteredCategoriesProvider = Provider<List<CategoryModel>>((ref) {
 
 class CategoryListNotifier
     extends StateNotifier<AsyncValue<List<CategoryModel>>> {
-  final Ref _ref;
-
   CategoryListNotifier(this._ref) : super(const AsyncValue.loading()) {
     _fetchCategories();
   }
+  final Ref _ref;
 
   Future<void> _fetchCategories() async {
     state = const AsyncValue.loading();
@@ -246,22 +243,31 @@ class CategoryListNotifier
 
   Future<void> addCategory(CategoryModel category) async {
     await _ref.read(databaseProvider).createCategory(category);
-    _fetchCategories();
+    await _fetchCategories();
   }
 
   Future<void> deleteCategory(int id) async {
     await _ref.read(databaseProvider).deleteCategory(id);
-    _fetchCategories();
+    await _fetchCategories();
   }
 
   Future<void> updateCategoryColor(int categoryId, Color color) async {
-    final colorHex = color.value.toRadixString(16).substring(2);
+    // Remplacement de .value par la méthode explicite .toARGB32()
+    final colorValue = color.toARGB32();
+
+    // Le reste du code est identique
+    final colorHex = colorValue.toRadixString(16).substring(2);
     await _ref.read(databaseProvider).updateCategoryColor(categoryId, colorHex);
-    _fetchCategories();
+    await _fetchCategories();
   }
 }
 
-final scriptListProvider = StateNotifierProvider.family<
+final StateNotifierProviderFamily<
+  ScriptListNotifier,
+  AsyncValue<List<ScriptModel>>,
+  int
+>
+scriptListProvider = StateNotifierProvider.family<
   ScriptListNotifier,
   AsyncValue<List<ScriptModel>>,
   int
@@ -271,13 +277,12 @@ final scriptListProvider = StateNotifierProvider.family<
 });
 
 class ScriptListNotifier extends StateNotifier<AsyncValue<List<ScriptModel>>> {
-  final Ref _ref;
-  final int _categoryId;
-
   ScriptListNotifier(this._ref, this._categoryId)
     : super(const AsyncValue.loading()) {
     _fetchScripts();
   }
+  final Ref _ref;
+  final int _categoryId;
 
   Future<void> _fetchScripts() async {
     state = const AsyncValue.loading();
@@ -301,26 +306,28 @@ class ScriptListNotifier extends StateNotifier<AsyncValue<List<ScriptModel>>> {
 
   Future<void> createScript(ScriptModel script) async {
     await _ref.read(databaseProvider).createScript(script);
-    _refreshAllScripts();
+    await _refreshAllScripts();
   }
 
   Future<void> editScript(ScriptModel scriptToSave) async {
     await _ref.read(databaseProvider).updateScript(scriptToSave);
-    _refreshAllScripts();
+    await _refreshAllScripts();
   }
 
   Future<void> deleteScript(int scriptId) async {
     await _ref.read(databaseProvider).deleteScript(scriptId);
-    _refreshAllScripts();
+    await _refreshAllScripts();
   }
 
   Future<void> updateLastExecuted(int scriptId) async {
     await _ref.read(databaseProvider).updateScriptLastExecuted(scriptId);
-    _refreshAllScripts();
+    await _refreshAllScripts();
   }
 }
 
-final navigatorKeyProvider = Provider((ref) => GlobalKey<NavigatorState>());
+final Provider<GlobalKey<NavigatorState>> navigatorKeyProvider = Provider(
+  (ref) => GlobalKey<NavigatorState>(),
+);
 
 final localeNotifierProvider = StateNotifierProvider<LocaleNotifier, Locale>((
   ref,

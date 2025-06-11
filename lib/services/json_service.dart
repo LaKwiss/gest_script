@@ -10,12 +10,15 @@ import 'package:gest_script/data/models/script_model.dart';
 import 'package:gest_script/data/providers/app_providers.dart';
 
 class JsonService {
-  final Ref _ref;
   JsonService(this._ref);
+  final Ref _ref;
 
   Future<void> exportJson(BuildContext context) async {
     final categories = _ref.read(categoryListProvider).value ?? [];
-    Map<String, dynamic> exportData = {'version': 1, 'categories': []};
+    final exportData = <String, dynamic>{
+      'version': 1,
+      'categories': <Map<String, dynamic>>[],
+    };
 
     for (var cat in categories) {
       final scripts = await _ref
@@ -28,7 +31,7 @@ class JsonService {
       });
     }
 
-    final String? outputFile = await FilePicker.platform.saveFile(
+    final outputFile = await FilePicker.platform.saveFile(
       dialogTitle: 'Exporter la configuration',
       fileName: 'gest-script-backup.json',
     );
@@ -51,7 +54,8 @@ class JsonService {
           (context) => AlertDialog(
             title: const Text('Importer une configuration'),
             content: const Text(
-              'ATTENTION : Ceci remplacera toute votre configuration actuelle. Voulez-vous continuer ?',
+              'ATTENTION : Ceci remplacera toute votre configuration actuelle. '
+              'Voulez-vous continuer ?',
             ),
             actions: [
               TextButton(
@@ -80,7 +84,7 @@ class JsonService {
       await _ref.read(databaseProvider).clearAllData();
 
       final List categoriesData = data['categories'];
-      int catOrder = 0;
+      var catOrder = 0;
       for (var catData in categoriesData) {
         final newCategoryModel = CategoryModel(
           name: catData['name'],
@@ -91,8 +95,8 @@ class JsonService {
             .read(databaseProvider)
             .createCategory(newCategoryModel);
 
-        final List scriptsData = catData['scripts'];
-        for (var scriptData in scriptsData) {
+        final scriptsData = List<Map<String, dynamic>>.from(catData['scripts']);
+        for (final scriptData in scriptsData) {
           final newScript = ScriptModel.fromJson(
             scriptData,
             createdCategory.id!,

@@ -15,7 +15,8 @@ class ScriptRunnerService {
     try {
       if (Platform.isWindows) {
         if (runAsAdmin) {
-          // Utilise PowerShell pour lancer un processus avec élévation de privilèges
+          // Utilise PowerShell pour lancer un processus avec élévation de
+          // privilèges
           // Note : Cette méthode ne capture pas stdout/stderr du processus élevé.
           // C'est une limitation de 'Start-Process -Verb RunAs'.
           return await Process.run('powershell', [
@@ -35,19 +36,19 @@ class ScriptRunnerService {
         return await Process.run('bash', ['-c', command], runInShell: true);
       }
     } catch (e) {
-      log('Erreur lors de l\'exécution du script: $e');
+      log("Erreur lors de l'exécution du script: $e");
       rethrow;
     }
   }
 }
 
-void handleScriptExecution(
+Future<void> handleScriptExecution(
   BuildContext context,
   WidgetRef ref,
   ScriptModel script,
 ) async {
   final runner = ref.read(scriptRunnerServiceProvider);
-  String commandToRun = script.command;
+  var commandToRun = script.command;
   if (script.params.isNotEmpty) {
     final paramValues = await showParamsDialog(context, script.params);
     if (paramValues == null) return;
@@ -59,7 +60,7 @@ void handleScriptExecution(
     }
   }
   final result = await runner.run(commandToRun, runAsAdmin: script.isAdmin);
-  ref
+  await ref
       .read(scriptListProvider(script.categoryId).notifier)
       .updateLastExecuted(script.id!);
   if (script.showOutput && context.mounted) {

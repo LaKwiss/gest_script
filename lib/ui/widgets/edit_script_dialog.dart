@@ -18,10 +18,10 @@ void showEditScriptDialog(
   final formKey = GlobalKey<FormState>();
 
   // Pré-remplissage des booléens
-  bool isAdmin = script.isAdmin;
-  bool showOutput = script.showOutput;
+  var isAdmin = script.isAdmin;
+  var showOutput = script.showOutput;
 
-  showDialog(
+  showDialog<void>(
     context: context,
     builder: (context) {
       // On utilise StatefulBuilder pour que les Checkbox puissent se redessiner
@@ -98,7 +98,8 @@ void showEditScriptDialog(
                                 .toList()
                             : <String>[];
 
-                    // On crée un nouvel objet ScriptModel avec TOUTES les données à jour
+                    // On crée un nouvel objet ScriptModel avec TOUTES les
+                    // données à jour
                     final updatedScript = ScriptModel(
                       id: script.id,
                       name: nameController.text,
